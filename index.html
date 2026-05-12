@@ -722,12 +722,19 @@ async function runAgent(idx) {
     let data;
     try {
       const parsed = JSON.parse(text);
-      // Handle n8n output wrapper
-      if (parsed.output) {
-        const clean = parsed.output.replace(/```json|```/g, '').trim();
-        data = JSON.parse(clean);
-      } else {
-        data = parsed;
+      // Handle n8n output - supports .output, .text, or direct object
+      const raw = parsed.output || parsed.text || parsed;
+      if (typeof raw === 'string') {
+        const clean = raw
+          .replace(/\\n/g, ' ')
+          .replace(/\\t/g, ' ')
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim();
+        const match = clean.match(/\{[\s\S]*\}/);
+        data = JSON.parse(match ? match[0] : clean);
+      } else if (typeof raw === 'object') {
+        data = raw;
       }
     } catch {
       data = null;
